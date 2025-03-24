@@ -26,6 +26,7 @@ class AuthController extends Controller
         $validated = $request->validated();
         $validated['password'] = Hash::make($validated['password']);
         $user = User::create($validated);
+        
         $token = auth()->login($user);
 
         return $this->respondWithToken($token);

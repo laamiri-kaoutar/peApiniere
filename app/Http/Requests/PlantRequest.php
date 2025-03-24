@@ -11,7 +11,7 @@ class PlantRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,9 +22,9 @@ class PlantRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => 'required|exists:categories,id', // Ensure category exists
-            'price' => 'nullable|numeric', // Price should be numeric and nullable
-            'name' => 'required|string|unique:plants,name', // Name must be unique
+            'category_id' => 'required|exists:categories,id', 
+            'price' => 'nullable|numeric',
+            'name' => 'required|string|unique:plants,name', 
             // 'slug' => 'required|string|unique:plants,slug', // Slug must be unique
             'description' => 'required|string',
         ];
