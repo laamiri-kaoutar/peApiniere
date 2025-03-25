@@ -5,24 +5,30 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller ;
+use App\Interfaces\CategoryRepositoryInterface;
+
+
 
 
 class CategoryController extends Controller
 {
-    public function __construct()
+
+    protected  $categoryRepository;
+
+    public function __construct(CategoryRepositoryInterface $categoryRepository) 
     {
         $this->middleware('auth:api', ['except' => ['index', 'show']]);
 
-        // $this->middleware(IsAdmin::class)->only(['store', 'update', 'destroy']);
+        $this->categoryRepository = $categoryRepository;
     }
+
+  
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        return response()->json([ 'categories' => Category::all()]);
-
-        
+        return response()->json([ 'categories' =>  $this->categoryRepository->getAllCategories()]);
     }
 
     /**
@@ -38,25 +44,24 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255'
         ]);
 
-        $category = Category::create(['name' => $request->name]);
-
-        return response()->json(['message' => 'Category created', 'category' => $category], 201);
+        return response()->json(['message' => 'Category created', 'category' =>  $this->categoryRepository->createCategory(['name' => $request->name])],
+                                 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Category $category)
+    public function show($id)
     {
 
-        return response()->json(['category' => $category], 200);
+        return response()->json(['category' =>  $this->categoryRepository->getCategoryById($id)], 200);
 
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Category $category)
+    public function update(Request $request, $id)
     {
         if ($request->user()->cannot('create', Category::class)) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -66,9 +71,8 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255'
         ]);
 
-        $category->update($validated);
 
-        return response()->json(['message' => 'Category updated', 'category' => $category], 201);
+        return response()->json(['message' => 'Category updated', 'category' => $this->categoryRepository->updateCategory($id , $validated)], 201);
     
         
     }
@@ -76,12 +80,12 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Category $category)
+    public function destroy($id)
     {
         if ($request->user()->cannot('create', Category::class)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-         $category->delete();
+        $this->categoryRepository->deleteCategory($id);
         return [ 
             'message'=> "The category deleted successfully"
         ];

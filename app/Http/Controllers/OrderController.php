@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Plant;
+use App\Models\OrderPlant;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -80,41 +82,41 @@ class OrderController extends Controller
     public function update(Request $request, Order $order)
     {
         //  here i need to check if the update action if from an imployee 
-        if ($request->user()->cannot('create', Order::class)) {
+        if ($request->user()->cannot('update', Order::class)) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($order->is_canceled == true) {
+            return response()->json(['message' => 'The Order already canceled', 'order' => $order]);
         }
 
         $validated=$request->validate([
             'status' => 'required|in:pending,preparing,delivered',
         ]);
 
-        if ($order->is_canceled == true) {
-            return response()->json(['message' => 'The Order already canceled', 'order' => $order]);
-        }
+       
 
         $order->update($validated);
 
-        return response()->json(['message' => 'Order updated successfully', 'order' => $order]);
+        return response()->json(['message' => "Order updated to $order->status successfully", 'order' => $order]);
   
     }
 
-    public function cancel(Request $request, Order $order)
+    public function cancel( $orderId)
     {
         //  here i need to check if the update action if from an imployee 
 
+        
         if ($request->user()->cannot('cancel', $order)) { 
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $validated=$request->validate([
-            'is_canceled' => 'required|boolean',
-        ]);
-
-        if ($order->is_canceled == true) {
+        if ($order->is_canceled === true) {
             return response()->json(['message' => 'The Order already canceled', 'order' => $order]);
         }
-
-        $order->update($validated);
+        $order->update([
+            'is_canceled' => 'true',
+        ]);
 
         return response()->json(['message' => 'Order canceled successfully', 'order' => $order]);
     }
@@ -130,5 +132,10 @@ class OrderController extends Controller
         return [ 
             'message'=> "The order deleted successfully"
         ];
+    }
+
+    public function getUserOrders()
+    {
+        auth()->id();
     }
 }

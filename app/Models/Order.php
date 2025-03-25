@@ -10,6 +10,8 @@ class Order extends Model
     /** @use HasFactory<\Database\Factories\OrderFactory> */
     use HasFactory;
 
+    protected $guarded= [];
+
     public function plants()
     {
         return $this->belongsToMany(Plant::class, 'order_plant')

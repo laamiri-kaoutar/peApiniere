@@ -36,7 +36,7 @@ class OrderPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Order $order): bool
+    public function update(User $user): bool
     {
         return $user->role->name == 'employe';
 
@@ -44,7 +44,7 @@ class OrderPolicy
 
     public function cancel(User $user, Order $order): bool
     {
-        return $user->role->name == 'client' && $order->user->id == $user->id;
+        return $user->role->name == 'client' && $order->user_id == $user->id;
     }
 
     /**
