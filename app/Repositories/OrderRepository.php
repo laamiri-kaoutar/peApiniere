@@ -3,6 +3,8 @@
 namespace App\Repositories;
 
 use App\Models\Order;
+use App\Models\Plant;
+use App\Models\OrderPlant;
 use App\Interfaces\OrderRepositoryInterface;
  
 class OrderRepository implements OrderRepositoryInterface 
@@ -18,13 +20,14 @@ class OrderRepository implements OrderRepositoryInterface
     }
     public function getOrderByUserId($userId)
     {
-        return Order::where('user_id',$userId);
+        return Order::where('user_id',$userId)->get();
     }
 
 
-    public function deleteOrder($OrderId)
+    public function deleteOrder($orderId)
     {
-        Order::destroy($OrderId);
+        OrderPlant::where('order_id', $orderId)->delete();
+       return Order::destroy($orderId);
     }
 
     public function createOrder(array $validated)
@@ -73,6 +76,5 @@ class OrderRepository implements OrderRepositoryInterface
         ]);
         return $order;
        
-
     }
 }

@@ -21,6 +21,16 @@ class AppServiceProvider extends ServiceProvider
             \App\Interfaces\PlantRepositoryInterface::class,
             \App\Repositories\PlantRepository::class
         );
+
+        $this->app->bind(
+            \App\Interfaces\OrderRepositoryInterface::class,
+            \App\Repositories\OrderRepository::class
+        );
+
+        $this->app->bind(
+            \App\Interfaces\StatisticsRepositoryInterface::class,
+            \App\Repositories\StatisticsRepository::class
+        );
     }
 
     /**

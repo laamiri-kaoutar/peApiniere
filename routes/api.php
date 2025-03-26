@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PlantController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\StatisticsController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -21,11 +22,13 @@ Route::patch('/plants/{plant:slug}' , [ PlantController::class , 'update']);
 Route::delete('/plants/{plant:slug}' , [ PlantController::class , 'destroy']);
 
 Route::apiResource('orders' , OrderController::class);
-Route::put('orders/cancelation/{order}' , [OrderController::class , 'cancel']);
+Route::put('orders/{order}/cancel' , [OrderController::class , 'cancel']);
+Route::get('/my-orders', [OrderController::class, 'getUserOrders']);
 
 
-
-
+Route::get('/statistics/orders' , [ StatisticsController::class , 'plantStatistics']);
+Route::get('/statistics/plants' , [ StatisticsController::class , 'categoryStatistics']);
+Route::get('/statistics/categories' , [ StatisticsController::class , 'orderStatistics']);
 
 
 

@@ -8,21 +8,21 @@ use Illuminate\Auth\Access\Response;
 
 class OrderPolicy
 {
-    // /**
-    //  * Determine whether the user can view any models.
-    //  */
-    // public function viewAny(User $user): bool
-    // {
-    //     return false;
-    // }
+    /**
+     * Determine whether the user can view any models.
+     */
+    public function viewAny(User $user): bool
+    {
+        return $user->role->name == 'employe' || $user->role->name == 'admin' ;
+    }
 
-    // /**
-    //  * Determine whether the user can view the model.
-    //  */
-    // public function view(User $user, Order $order): bool
-    // {
-    //     return false;
-    // }
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, Order $order): bool
+    {
+        return $user->role->name == 'employe' || $user->role->name == 'admin'  || ($user->role->name == 'client' && $order->user_id == $user->id) ;
+    }
 
     /**
      * Determine whether the user can create models.
@@ -45,6 +45,11 @@ class OrderPolicy
     public function cancel(User $user, Order $order): bool
     {
         return $user->role->name == 'client' && $order->user_id == $user->id;
+    }
+
+    public function getUserOrders(User $user): bool
+    {
+        return $user->role->name == 'client';
     }
 
     /**

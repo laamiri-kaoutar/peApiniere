@@ -3,23 +3,62 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\Plant;
-use App\Models\OrderPlant;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use App\Interfaces\OrderRepositoryInterface;
 
 class OrderController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        return response()->json(['orders' => Order::with('plants')->get()]);
+    protected $orderRepository;
 
+    public function __construct(OrderRepositoryInterface $orderRepository) 
+    {
+        $this->middleware('auth:api');
+        $this->orderRepository = $orderRepository;
     }
 
     /**
-     * Store a newly created resource in storage.
+     * @OA\Get(
+     *     path="/orders",
+     *     summary="Get all orders",
+     *     tags={"Orders"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="List of orders"),
+     *     @OA\Response(response=403, description="Unauthorized")
+     * )
+     */
+    public function index()
+    {
+        if (auth()->user()->cannot('viewAny', Order::class)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json(['orders' => $this->orderRepository->getAllOrders()]);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/orders",
+     *     summary="Create a new order",
+     *     tags={"Orders"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"plants"},
+     *             @OA\Property(
+     *                 property="plants",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="quantity", type="integer", example=2)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Order created successfully"),
+     *     @OA\Response(response=403, description="Unauthorized")
+     * )
      */
     public function store(Request $request)
     {
@@ -33,109 +72,158 @@ class OrderController extends Controller
             'plants.*.quantity' => 'required|integer|min:1',
         ]);
 
-        $order = Order::create([
-            'status' => 'pending',
-            'user_id'=> auth()->id(),
-            'total_amount' => 0, 
-            'is_canceled' => false,
-        ]);
+        $order = $this->orderRepository->createOrder($validated);
 
-        $totalAmount = 0;
+        return response()->json(['message' => 'Order created successfully', 'order' => $order], 201);
+    }
 
-        foreach ($validated['plants'] as $data) {
+    /**
+     * @OA\Get(
+     *     path="/orders/{id}",
+     *     summary="Get an order by ID",
+     *     tags={"Orders"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer"),
+     *         description="Order ID"
+     *     ),
+     *     @OA\Response(response=200, description="Order details"),
+     *     @OA\Response(response=403, description="Unauthorized"),
+     *     @OA\Response(response=404, description="Order not found")
+     * )
+     */
+    public function show($orderId)
+    {
+        $order = $this->orderRepository->getOrderById($orderId);
 
-            $plant = Plant::find($data['id']);
-            $quantity = $data['quantity'];
-            $priceAtOrder = $plant->price * $quantity;
-        
-            OrderPlant::create([
-                'order_id' => $order->id,
-                'plant_id' => $plant->id,
-                'quantity' => $quantity,
-                'price_at_order' => $priceAtOrder,
-            ]);
-        
-            $totalAmount += $priceAtOrder;
+        if (auth()->user()->cannot('view', $order)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
-        
 
-
-        $order->update(['total_amount' => $totalAmount]);
-        return response()->json(['message' => 'Order created successfully', 'order' => $order]);
-
-
-
+        return response()->json(['order' => $order]);
     }
 
     /**
-     * Display the specified resource.
+     * @OA\Put(
+     *     path="/orders/{id}",
+     *     summary="Update an order",
+     *     tags={"Orders"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer"),
+     *         description="Order ID"
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"status"},
+     *             @OA\Property(property="status", type="string", enum={"pending", "preparing", "delivered"})
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Order updated successfully"),
+     *     @OA\Response(response=403, description="Unauthorized")
+     * )
      */
-    public function show(Order $order)
+    public function update(Request $request, $orderId)
     {
-        return response()->json(['plant' => $order]);
-
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Order $order)
-    {
-        //  here i need to check if the update action if from an imployee 
         if ($request->user()->cannot('update', Order::class)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        if ($order->is_canceled == true) {
-            return response()->json(['message' => 'The Order already canceled', 'order' => $order]);
+        $order = $this->orderRepository->getOrderById($orderId);
+
+        if ($order->is_canceled) {
+            return response()->json(['message' => 'The Order is already canceled', 'order' => $order]);
         }
 
-        $validated=$request->validate([
+        $validated = $request->validate([
             'status' => 'required|in:pending,preparing,delivered',
         ]);
 
-       
-
-        $order->update($validated);
+        $order = $this->orderRepository->updateOrder($orderId, $validated);
 
         return response()->json(['message' => "Order updated to $order->status successfully", 'order' => $order]);
-  
-    }
-
-    public function cancel( $orderId)
-    {
-        //  here i need to check if the update action if from an imployee 
-
-        
-        if ($request->user()->cannot('cancel', $order)) { 
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        if ($order->is_canceled === true) {
-            return response()->json(['message' => 'The Order already canceled', 'order' => $order]);
-        }
-        $order->update([
-            'is_canceled' => 'true',
-        ]);
-
-        return response()->json(['message' => 'Order canceled successfully', 'order' => $order]);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * @OA\Delete(
+     *     path="/orders/{id}",
+     *     summary="Delete an order",
+     *     tags={"Orders"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer"),
+     *         description="Order ID"
+     *     ),
+     *     @OA\Response(response=200, description="Order deleted successfully"),
+     *     @OA\Response(response=403, description="Unauthorized")
+     * )
      */
-    public function destroy(Order $order)
+    public function destroy($orderId)
     {
-        OrderPlant::where('order_id', $order->id)->delete();
-
-        $order->delete();
-        return [ 
-            'message'=> "The order deleted successfully"
-        ];
+        if ($this->orderRepository->deleteOrder($orderId)) {
+            return response()->json(['message' => "The order was deleted successfully"], 200);
+        }
+        return response()->json(['message' => "The order could not be deleted"], 400);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/orders/{id}/cancel",
+     *     summary="Cancel an order",
+     *     tags={"Orders"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer"),
+     *         description="Order ID"
+     *     ),
+     *     @OA\Response(response=200, description="Order canceled successfully"),
+     *     @OA\Response(response=403, description="Unauthorized")
+     * )
+     */
+    public function cancel($orderId)
+    {
+        $order = $this->orderRepository->getOrderById($orderId);
+
+        if (auth()->user()->cannot('cancel', $order)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($order->status == "preparing" || $order->status == "delivered" || $order->is_canceled) {
+            return response()->json(['message' => "The order is already $order->status or canceled", 'order' => $order]);
+        }
+
+        return response()->json(['message' => 'Order canceled successfully', 'order' => $this->orderRepository->cancelOrder($orderId)]);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/orders/user",
+     *     summary="Get user's order history",
+     *     tags={"Orders"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="User's order history"),
+     *     @OA\Response(response=403, description="Unauthorized")
+     * )
+     */
     public function getUserOrders()
     {
-        auth()->id();
+        if (auth()->user()->cannot('getUserOrders', Order::class)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json(['message' => 'Your order history', 'orders' => $this->orderRepository->getOrderByUserId(auth()->id())]);
     }
 }
