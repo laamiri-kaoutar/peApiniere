@@ -22,6 +22,7 @@ Route::patch('/plants/{plant:slug}' , [ PlantController::class , 'update']);
 Route::delete('/plants/{plant:slug}' , [ PlantController::class , 'destroy']);
 
 Route::apiResource('orders' , OrderController::class);
+
 Route::put('orders/{order}/cancel' , [OrderController::class , 'cancel']);
 Route::get('/my-orders', [OrderController::class, 'getUserOrders']);
 

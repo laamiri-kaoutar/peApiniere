@@ -139,8 +139,10 @@ class PlantController extends Controller
      */
     public function show($slug)
     {
-        return response()->json(['plant' => $this->plantRepository->getPlantBySlug($slug)]);
+        $plant = $this->plantRepository->getPlantBySlug($slug);
+        return response()->json(['plant' => $plant], 200);
     }
+    
 
     /**
      * @OA\Put(

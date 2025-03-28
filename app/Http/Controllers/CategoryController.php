@@ -13,7 +13,7 @@ class CategoryController extends Controller
 
     public function __construct(CategoryRepositoryInterface $categoryRepository) 
     {
-        $this->middleware('auth:api', ['except' => ['index', 'show']]);
+        // $this->middleware('auth:api', ['except' => ['index', 'show']]);
         $this->categoryRepository = $categoryRepository;
     }
 
@@ -49,9 +49,9 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
-        if ($request->user()->cannot('create', Category::class)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // if ($request->user()->cannot('create', Category::class)) {
+        //     return response()->json(['message' => 'Unauthorized'], 403);
+        // }
 
         $request->validate([
             'name' => 'required|string|max:255'
@@ -110,9 +110,9 @@ class CategoryController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if ($request->user()->cannot('update', Category::class)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // if ($request->user()->cannot('update', Category::class)) {
+        //     return response()->json(['message' => 'Unauthorized'], 403);
+        // }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255'
@@ -143,9 +143,9 @@ class CategoryController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        if ($request->user()->cannot('delete', Category::class)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // if ($request->user()->cannot('delete', Category::class)) {
+        //     return response()->json(['message' => 'Unauthorized'], 403);
+        // }
 
         $this->categoryRepository->deleteCategory($id);
 
