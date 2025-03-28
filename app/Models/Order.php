@@ -12,6 +12,8 @@ class Order extends Model
 
     protected $guarded= [];
 
+    
+
     public function plants()
     {
         return $this->belongsToMany(Plant::class, 'order_plant')
